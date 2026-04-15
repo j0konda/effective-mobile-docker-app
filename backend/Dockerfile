@@ -1,43 +1,35 @@
-FROM python:3.11-alpine
+# Многостадийная сборка для минимального размера
+FROM python:3.11-alpine AS builder
 
-# Set working directory
-WORKDIR /app
+WORKDIR /build
 
-# Copy application code
+# Копируем только необходимые файлы
 COPY app.py .
 
-# Create non-root user for security
-RUN adduser -D -u 1000 appuser && \
-    chown -R appuser:appuser /app
+# Финальный образ
+FROM python:3.11-alpine
 
-# Switch to non-root user
+# Создаем непривилегированного пользователя
+RUN addgroup -g 1000 -S appgroup && \
+    adduser -u 1000 -S appuser -G appgroup
+
+WORKDIR /app
+
+# Копируем приложение из builder
+COPY --from=builder --chown=appuser:appgroup /build/app.py .
+
+# Делаем скрипт исполняемым
+RUN chmod +x app.py
+
+# Переключаемся на непривилегированного пользователя
 USER appuser
 
-# Document exposed port
+# Документируем порт
 EXPOSE 8080
 
-# === Project Atomic labels (для dockerfile-validator) ===
-LABEL Name="effective-mobile-backend" \
-      Version="1.0.0" \
-      Release="1" \
-      Architecture="x86_64" \
-      Summary="Backend service for Effective Mobile test task" \
-      Description="Simple Python HTTP backend responding with 'Hello from Effective Mobile!'" \
-      Vendor="Effective Mobile" \
-      Url="https://github.com/j0konda/effective-mobile-docker-app" \
-      Maintainer="j0konda"
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
 
-# === OCI standard labels (современный стандарт) ===
-LABEL org.opencontainers.image.title="Effective Mobile Backend" \
-      org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.description="Simple Python HTTP backend" \
-      org.opencontainers.image.url="https://github.com/j0konda/effective-mobile-docker-app" \
-      org.opencontainers.image.source="https://github.com/j0konda/effective-mobile-docker-app" \
-      org.opencontainers.image.vendor="Effective Mobile"
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
-
-# Run the application
-CMD ["python", "app.py"]
+# Запуск приложения
+CMD ["python", "-u", "app.py"]
