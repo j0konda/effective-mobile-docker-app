@@ -234,3 +234,60 @@ docker exec effective-mobile-nginx whoami
 # Проверка открытых портов бэкенда
 docker port effective-mobile-backend
 # Вывод: (пусто) - порты не опубликованы
+
+Диагностика
+
+# Проверка логов бэкенда
+```
+docker logs effective-mobile-backend
+```
+# Проверка логов nginx
+```
+docker logs effective-mobile-nginx
+```
+# Проверка сети
+```
+docker network ls
+```
+```
+docker network inspect effective-mobile-docker-app_app-network
+```
+# Проверка healthcheck
+```
+docker inspect effective-mobile-backend | grep -A 10 "Health"
+```
+Сброс и перезапуск
+# Полный сброс
+```
+docker compose down -v
+docker system prune -f
+```
+# Чистый запуск
+```
+docker compose up -d --build
+```
+
+🛠 Технологии
+
+Python 3.11-alpine - легковесный образ Python
+
+Nginx 1.25-alpine - официальный образ nginx на Alpine
+
+Docker Compose v3.8 - оркестрация контейнеров
+
+Alpine Linux - минимальный дистрибутив Linux
+
+📊 Производительность
+Оптимизации
+
+✅ Alpine Linux как базовый образ (минимальный размер)
+
+✅ Многостадийная сборка Python образа
+
+✅ Gzip сжатие в nginx
+
+✅ Keepalive соединения
+
+✅ Лимиты ресурсов для предотвращения DoS
+
+✅ Буферизация в nginx
