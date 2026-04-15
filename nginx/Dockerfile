@@ -1,15 +1,24 @@
-FROM nginx:1.25-alpine-slim
+FROM nginx:1.25-alpine
 
 # Удаляем дефолтную конфигурацию
-RUN rm -f /etc/nginx/nginx.conf
+RUN rm /etc/nginx/nginx.conf
 
 # Копируем нашу конфигурацию
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Проверяем синтаксис конфигурации без резолвинга upstream
-RUN nginx -t 2>/dev/null || (echo "Warning: nginx config syntax might be invalid" && exit 0)
+# Создаем пользователя nginx (если его нет)
+RUN adduser -D -u 101 -g 'nginx' nginx 2>/dev/null || true
+
+# Меняем владельца конфигурационных файлов
+RUN chown -R nginx:nginx /etc/nginx/ && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+
+# Переключаемся на пользователя nginx
+USER nginx
 
 EXPOSE 80
 
-# Запускаем nginx в foreground
 CMD ["nginx", "-g", "daemon off;"]
